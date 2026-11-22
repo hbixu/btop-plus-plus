@@ -1,10 +1,13 @@
 # Sync this repo to GitHub on push to main or on tags vMAJOR.MINOR.PATCH (e.g. v1.0.0, v1.0.0-beta).
 # Pushes branch main and matching version tags to GitHub, excluding .gitea and internal/.
+# On a version tag, also creates the release on Gitea and on GitHub, with notes from
+# CHANGELOG.md and the versions table from VERSIONS.md (.gitea/scripts/release-notes.sh).
 #
 # Required in Gitea (Settings → Secrets and Variables):
-#   Secret:   SYNC_GITHUB_TOKEN  — GitHub Personal Access Token with repo scope
-#   Variable: SYNC_GITHUB_REPO  — GitHub repo as "owner/repo" (e.g. octocat/my-repo)
+#   Secret:   SYNC_GITHUB_TOKEN  — GitHub Personal Access Token (Contents: Read and write)
+#   Variable: SYNC_GITHUB_REPO  — GitHub repo as "owner/repo" (e.g. hbixu/btop-plus-plus)
 #   (Names cannot start with GITEA_ or GITHUB_)
+# The Gitea release uses the automatic Actions token (secrets.GITHUB_TOKEN).
 
 name: Sync to GitHub
 
@@ -15,6 +18,9 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-*'
+
+permissions:
+  contents: write
 
 jobs:
   sync:
@@ -29,6 +35,12 @@ jobs:
         run: |
           git config user.name "Gitea Sync"
           git config user.email "sync@gitea.local"
+
+      - name: Generate release notes (version tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          bash .gitea/scripts/release-notes.sh "${{ github.ref_name }}" > /tmp/release-notes.md
+          cat /tmp/release-notes.md
 
       - name: Remove .gitea and internal (do not sync to GitHub)
         run: |
@@ -56,3 +68,44 @@ jobs:
               git push github "$tag" || true
             done
           fi
+
+      - name: Create releases on Gitea and GitHub (version tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TAG: ${{ github.ref_name }}
+          GITEA_API: ${{ github.server_url }}/api/v1/repos/${{ github.repository }}
+          GITEA_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_API: https://api.github.com/repos/${{ vars.SYNC_GITHUB_REPO }}
+          GH_TOKEN: ${{ secrets.SYNC_GITHUB_TOKEN }}
+        run: |
+          # JSON payload (escape backslashes, quotes and tabs; join lines with \n)
+          body=$(awk 'BEGIN { ORS="" } { gsub(/\r/, ""); gsub(/\\/, "\\\\"); gsub(/"/, "\\\""); gsub(/\t/, "\\t"); print $0 "\\n" }' /tmp/release-notes.md)
+          prerelease=false
+          case "$TAG" in *-*) prerelease=true ;; esac
+          printf '{"tag_name":"%s","name":"%s","body":"%s","draft":false,"prerelease":%s}' \
+            "$TAG" "$TAG" "$body" "$prerelease" > /tmp/release.json
+
+          # create_release NAME API AUTH_HEADER
+          create_release() {
+            local name="$1" api="$2" auth="$3" status
+            status=$(curl -s -o /dev/null -w '%{http_code}' -H "$auth" "$api/releases/tags/$TAG")
+            if [ "$status" = "200" ]; then
+              echo "$name: release $TAG already exists, skipping"
+              return 0
+            fi
+            status=$(curl -s -o /tmp/release-response.json -w '%{http_code}' -X POST \
+              -H "$auth" -H "Content-Type: application/json" -H "Accept: application/json" \
+              --data @/tmp/release.json "$api/releases")
+            if [ "$status" = "201" ]; then
+              echo "$name: release $TAG created"
+            else
+              echo "$name: failed to create release $TAG (HTTP $status)"
+              cat /tmp/release-response.json
+              return 1
+            fi
+          }
+
+          rc=0
+          create_release "Gitea" "$GITEA_API" "Authorization: token $GITEA_TOKEN" || rc=1
+          create_release "GitHub" "$GH_API" "Authorization: Bearer $GH_TOKEN" || rc=1
+          exit $rc

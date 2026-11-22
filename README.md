@@ -58,7 +58,7 @@ git diff           # review the changes
 2. `./build.sh --registry docker.io/hbixu --push`
 3. `./release.sh`
 
-Pushing a tag to Gitea triggers the sync to GitHub (see [.gitea/README.md](.gitea/README.md)). After a release, update the Docker Hub description with `internal/DOCKER-README.md`.
+Pushing a tag to Gitea triggers the sync to GitHub and creates the release on Gitea and GitHub, with the notes from `CHANGELOG.md` and the versions table from `VERSIONS.md` (see [.gitea/README.md](.gitea/README.md)). After a release, update the Docker Hub description with `internal/DOCKER-README.md`.
 
 ## Configuration
 
