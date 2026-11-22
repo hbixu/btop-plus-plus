@@ -9,3 +9,4 @@ config/
 internal/
 docker-compose.yml
 # Note: LICENSE and third-party-licenses/ are copied into the image
+!root/*.sh

@@ -48,8 +48,8 @@ services:
     volumes:
       - ./config:/config
       - /etc/localtime:/etc/localtime:ro
-      # Additional disks (read-only) to show in the disks panel
-      # - /mnt/hdd1:/mnt/hdd1:ro
+      # Disks to show in btop (read-only)
+      # - /mnt/data:/mnt/data:ro
     restart: unless-stopped
 ```
 
@@ -58,6 +58,7 @@ services:
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `PORT` | No | Web interface (ttyd) port (default: `7681`) |
+| `FONT_SIZE` | No | Font size of the web interface (default: `16`) |
 
 ## Volumes
 

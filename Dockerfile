@@ -89,7 +89,8 @@ ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     TERM=xterm-256color \
     XDG_CONFIG_HOME=/config \
-    PORT=7681
+    PORT=7681 \
+    FONT_SIZE=16
 
 # btop configuration (persisted via volume): /config/btop/btop.conf
 RUN mkdir -p /config/btop
@@ -100,6 +101,14 @@ EXPOSE 7681
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
   CMD wget -q --spider "http://127.0.0.1:${PORT}/" || exit 1
 
-ENTRYPOINT ["/sbin/tini", "--"]
+# Entrypoint: generates /etc/fstab from the mounted disks so btop shows them,
+# and creates the default btop config on first run
+COPY root/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/entrypoint.sh"]
 # -W: writable terminal (keyboard input); exiting btop closes the session, reloading the page reopens it
-CMD ["sh", "-c", "exec ttyd -W -p \"$PORT\" -t titleFixed=btop btop --utf-force"]
+# -s 2: send SIGINT (instead of SIGHUP) to btop when the session closes, so it quits cleanly and saves its config
+# -t fontSize: terminal font size in the browser (FONT_SIZE); larger = fewer columns/rows, bigger UI
+# (no UTF-8 flag needed: LANG=C.UTF-8 lets btop detect UTF-8; the flag name also changed between versions)
+CMD ["sh", "-c", "exec ttyd -W -s 2 -p \"$PORT\" -t titleFixed=btop -t fontSize=\"$FONT_SIZE\" btop"]

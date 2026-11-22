@@ -1,20 +1,14 @@
 # btop-plus-plus
 
-Minimal Docker image (Alpine) with **[btop++](https://github.com/aristocratos/btop)**, the resource monitor, accessible from the **browser** through [ttyd](https://github.com/tsl0922/ttyd) or directly from the **terminal**.
+Minimal Docker image (Alpine) with **[btop++](https://github.com/aristocratos/btop)**, accessible from the **browser** through [ttyd](https://github.com/tsl0922/ttyd) or from the **terminal**.
 
 ## Features
 
 - ✅ **[btop++](https://github.com/aristocratos/btop)** compiled from the official source code, at a pinned version
-- ✅ Web access through **[ttyd](https://github.com/tsl0922/ttyd)** (configurable port)
+- ✅ Web access through **[ttyd](https://github.com/tsl0922/ttyd)**
 - ✅ Shows the **host** processes, network interfaces, disks and sensors
 - ✅ Built-in healthcheck
 - ✅ Multi-platform: `linux/amd64` and `linux/arm64`
-- ✅ Based on the official [Alpine](https://hub.docker.com/_/alpine) image
-
-## Requirements
-
-- Docker and Docker Compose installed
-- Linux host (btop reads the host's `/proc` and `/sys`)
 
 ## File Structure
 
@@ -25,6 +19,8 @@ Minimal Docker image (Alpine) with **[btop++](https://github.com/aristocratos/bt
 ├── build.sh                  # Build helper (local / multi-platform + push)
 ├── check-versions.sh         # Update checker (Linux / macOS / Git Bash)
 ├── check-versions.ps1        # Update checker (Windows PowerShell)
+├── update-btop.sh            # Interactive btop++ update: build/push a new image
+├── root/                     # Scripts copied into the image (entrypoint)
 ├── VERSIONS.md               # Version and build details
 ├── CHANGELOG.md
 ├── third-party-licenses/     # Licenses of bundled third-party software
@@ -33,38 +29,17 @@ Minimal Docker image (Alpine) with **[btop++](https://github.com/aristocratos/bt
 
 ## Build the image
 
-For version defaults, version history, pinned components, and how to check for newer versions, see **[VERSIONS.md](VERSIONS.md)**.
+See **[VERSIONS.md](VERSIONS.md)** for the pinned versions and how to check for newer ones.
 
-**Option 1: Helper script (Recommended)**
 ```bash
-chmod +x build.sh
-./build.sh --help  # See all options
-
-# Local build only (tags btop-plus-plus:VERSION and :latest on this machine)
-./build.sh
-
-# Local build with a different btop++ version
-./build.sh --btop-version 1.4.7
-
-# Build and push to a registry (e.g. Docker Hub; replace 'username' with your Docker Hub username)
-# Default: linux/amd64 and linux/arm64
-./build.sh --registry docker.io/username --push
+./build.sh --help                                  # See all options
+./build.sh                                         # Local build (btop-plus-plus:VERSION and :latest)
+./build.sh --btop-version 1.4.7                    # Local build with another btop++ version
+./build.sh --registry docker.io/username --push    # Build linux/amd64 + linux/arm64 and push
+./update-btop.sh                                   # Check for a new btop++ release, build and push (interactive)
 ```
 
-**Option 2: Direct Docker build (single platform)**
-```bash
-docker build \
-  --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-  --build-arg VERSION=1.0.0 \
-  --build-arg ALPINE_VERSION=3.24.4 \
-  --build-arg BTOP_VERSION=1.4.8 \
-  --build-arg TTYD_VERSION=1.7.7-r0 \
-  -t btop-plus-plus:1.0.0 .
-```
-
-**Notes:**
-- btop++ is compiled during the build, so the first build takes a few minutes. Multi-platform builds compile the non-native architecture under QEMU emulation and can take considerably longer.
-- Before pushing, authenticate: `docker login`
+btop++ is compiled during the build, so it takes a few minutes (longer for multi-platform builds).
 
 ## Configuration
 
@@ -72,35 +47,31 @@ docker build \
 
 | Variable | Required | Description | Default |
 |----------|----------|-------------|---------|
-| `PORT` | ❌ No | Port where the web interface (ttyd) listens | `7681` |
-
-In `docker-compose.yml`, `PORT` is read from `BTOP_PORT`, so it can be changed without editing the file:
-
-```bash
-BTOP_PORT=5002 docker compose up -d
-```
-
-or with a `.env` file next to `docker-compose.yml`:
-
-```env
-BTOP_PORT=5002
-```
-
-> **Synology DSM (XPEnology):** with the ARPL/RR bootloader, port `7681` is already taken by the bootloader — use another port, e.g. `5002`.
+| `PORT` | ❌ No | Port of the web interface | `7681` |
+| `FONT_SIZE` | ❌ No | Font size of the web interface | `16` |
 
 ### Volumes
 
 | Path | Description |
 |------|-------------|
-| `/config` | btop configuration (`/config/btop/btop.conf`), created on first run. It can be edited directly or from btop's options menu (`o` key). |
+| `/config` | btop configuration (`/config/btop/btop.conf`), created on first run |
 
-### Additional disks
+### Disks
 
-btop only shows the disks that are mounted in the container. Mount each disk you want to monitor, read-only:
+btop only shows the disks mounted in the container. Mount each disk you want to monitor, read-only:
 
 ```yaml
 volumes:
-  - /mnt/hdd1:/mnt/hdd1:ro
+  - /mnt/data:/mnt/data:ro
+```
+
+Mounted disks are detected at startup and listed in the container logs (`btop disk: /mnt/data (ext4)`).
+
+To choose the disks manually instead, set in `btop.conf`:
+
+```ini
+use_fstab = False
+disks_filter = "/mnt/data"
 ```
 
 ### Required permissions
@@ -108,34 +79,25 @@ volumes:
 | Option | Purpose |
 |--------|---------|
 | `pid: host` | See the host processes |
-| `network_mode: host` | See the host network interfaces and traffic |
-| `privileged: true` | Access sensors/temperatures and hardware metrics (`/sys`, `/dev`) |
+| `network_mode: host` | See the host network interfaces |
+| `privileged: true` | Access sensors/temperatures |
 
-There is no need to bind-mount `/proc`, `/sys` or `/dev` from the host:
-
-- `/proc` — with `pid: host`, the container's `/proc` already shows the host processes; CPU and memory (`/proc/stat`, `/proc/meminfo`) are always host-wide, and network counters come from the host because of `network_mode: host`. Mounting the host `/proc` over the container's is discouraged.
-- `/sys` — sysfs (sensors, block devices) already reflects the host; `privileged: true` makes it fully accessible.
-- `/dev` — `privileged: true` already exposes all host devices.
+Mounting `/proc`, `/sys` or `/dev` from the host is not needed.
 
 ## Usage
 
 ### Web (browser)
 
-After building the image with `build.sh`, start with Docker Compose:
-
 ```bash
 docker compose up -d
-
-# View logs
-docker compose logs -f
 ```
 
-Open `http://<host>:7681` (or the port set in `BTOP_PORT`). Quitting btop (`q`) closes the session; reload the page to open it again.
+Open `http://<host>:7681`.
 
 Without Compose:
 ```bash
 docker run -d --name btop --pid=host --network=host --privileged \
-  -v $(pwd)/config:/config -e PORT=7681 \
+  -v $(pwd)/config:/config \
   --restart unless-stopped btop-plus-plus:latest
 ```
 
@@ -145,23 +107,19 @@ docker run -d --name btop --pid=host --network=host --privileged \
 docker run --rm -it --pid=host --network=host --privileged btop-plus-plus:latest btop
 ```
 
-## Healthcheck
-
-The image includes a healthcheck that verifies the web interface responds on `PORT`. Use `docker ps` to see the status; for details run `docker inspect btop --format '{{json .State.Health}}'`.
-
 ## Security
 
-- **ttyd has no authentication by default.** Do not expose the port to the internet; keep it on your local network or put it behind an authenticated reverse proxy. To require a password, override the command:
+- **The web interface has no authentication.** Do not expose it to the internet. To require a password, override the command:
   ```yaml
-  command: ["sh", "-c", "exec ttyd -W -c user:password -p \"$PORT\" btop --utf-force"]
+  command: ["sh", "-c", "exec ttyd -W -s 2 -c user:password -p \"$PORT\" -t titleFixed=btop -t fontSize=\"$FONT_SIZE\" btop"]
   ```
-- The container runs as **root** with `privileged: true` and the host PID namespace: from btop it is possible to send signals to (kill) **host** processes. Remove `privileged: true` if you do not need sensor data.
+- The container runs as **root** with access to the host processes: they can be killed from btop.
 
 ## License
 
 This project is licensed under the **Apache License 2.0** — see the [LICENSE](LICENSE) file.
 
-The image bundles third-party software under its own licenses (copies included in the image under `/usr/local/share/licenses/`):
+Bundled third-party software (licenses included in the image under `/usr/local/share/licenses/`):
 
 | Component | License |
 |-----------|---------|
