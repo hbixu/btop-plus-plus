@@ -19,8 +19,6 @@ Minimal Docker image (Alpine) with **[btop++](https://github.com/aristocratos/bt
 ├── build.sh                  # Build helper (local / multi-platform + push)
 ├── check-versions.sh         # Update checker (Linux / macOS / Git Bash)
 ├── check-versions.ps1        # Update checker (Windows PowerShell)
-├── update-btop.sh            # Interactive btop++ update: build/push a new image
-├── release.sh                # Commit, tag and push a release
 ├── root/                     # Scripts copied into the image (entrypoint)
 ├── VERSIONS.md               # Version and build details
 ├── CHANGELOG.md
@@ -37,41 +35,9 @@ See **[VERSIONS.md](VERSIONS.md)** for the pinned versions and how to check for 
 ./build.sh                                         # Local build (btop-plus-plus:VERSION and :latest)
 ./build.sh --btop-version 1.4.7                    # Local build with another btop++ version
 ./build.sh --registry docker.io/username --push    # Build linux/amd64 + linux/arm64 and push
-./update-btop.sh                                   # Check for a new btop++ release, build and push (interactive)
 ```
 
 btop++ is compiled during the build, so it takes a few minutes (longer for multi-platform builds).
-
-## Release workflow
-
-The `develop` branch is for work in progress. Releases are prepared and created on `main`.
-
-**1. Merge `develop` into `main`** (if there is work to release): pull request on Gitea, or `git switch main && git merge develop`
-
-**2. On `main`, prepare the release**
-
-- New btop++ version:
-  ```bash
-  ./update-btop.sh   # checks for a new btop++ release, builds and pushes the image, updates the version files
-  ```
-- Other changes (Alpine, scripts, documentation): bump `DEFAULT_VERSION` in `build.sh`, add an entry to `CHANGELOG.md` (and to the version tables in `VERSIONS.md` and `internal/DOCKER-README.md`), then build and push the image:
-  ```bash
-  ./build.sh --registry docker.io/hbixu --push
-  ```
-
-**3. Release**
-
-```bash
-./release.sh         # commits the changes, creates the tag vX.Y.Z and pushes main + tag
-```
-
-**4. Bring the release back to `develop`**
-
-```bash
-git switch develop && git merge main && git push
-```
-
-Pushing a tag to Gitea triggers the sync to GitHub and creates the release on Gitea and GitHub, with the notes from `CHANGELOG.md` and the versions table from `VERSIONS.md` (see [.gitea/README.md](.gitea/README.md)). After a release, update the Docker Hub description with `internal/DOCKER-README.md`.
 
 ## Configuration
 

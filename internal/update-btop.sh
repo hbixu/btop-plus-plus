@@ -10,9 +10,9 @@
 #   5. Runs build.sh; on success updates build.sh, Dockerfile, VERSIONS.md,
 #      CHANGELOG.md and internal/DOCKER-README.md with the new versions
 #
-# Nothing is committed: review the changes with `git diff`, then run ./release.sh.
+# Nothing is committed: review the changes with `git diff`, then run ./internal/release.sh.
 #
-# Usage: ./update-btop.sh [--force] [--registry REGISTRY]
+# Usage: ./internal/update-btop.sh [--force] [--registry REGISTRY]
 #   --force              Offer to build even if btop++ is already up to date
 #   --registry REGISTRY  Default registry for push (default: docker.io/hbixu)
 
@@ -25,12 +25,15 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# This script lives in internal/; all project files are relative to the repository root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_SH="$SCRIPT_DIR/build.sh"
-DOCKERFILE="$SCRIPT_DIR/Dockerfile"
-VERSIONS_MD="$SCRIPT_DIR/VERSIONS.md"
-CHANGELOG_MD="$SCRIPT_DIR/CHANGELOG.md"
-DOCKER_README="$SCRIPT_DIR/internal/DOCKER-README.md"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$ROOT_DIR"   # build.sh uses the current directory as the Docker build context
+BUILD_SH="$ROOT_DIR/build.sh"
+DOCKERFILE="$ROOT_DIR/Dockerfile"
+VERSIONS_MD="$ROOT_DIR/VERSIONS.md"
+CHANGELOG_MD="$ROOT_DIR/CHANGELOG.md"
+DOCKER_README="$ROOT_DIR/internal/DOCKER-README.md"
 
 FORCE=false
 DEFAULT_PUSH_REGISTRY="docker.io/hbixu"
@@ -38,7 +41,7 @@ DEFAULT_PUSH_REGISTRY="docker.io/hbixu"
 while [[ $# -gt 0 ]]; do
     case $1 in
         -h|--help)
-            sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'
+            sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
             exit 0
             ;;
         --force)
@@ -316,4 +319,4 @@ fi
 echo ""
 echo "Next steps:"
 echo "  git diff        # review the changes"
-echo "  ./release.sh    # commit, tag v$NEW_IMAGE_VERSION and push"
+echo "  ./internal/release.sh    # commit, tag v$NEW_IMAGE_VERSION and push"

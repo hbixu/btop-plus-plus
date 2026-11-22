@@ -10,10 +10,10 @@
 #   4. Asks to create the tag and push main + tag to origin (Gitea),
 #      which triggers the sync to GitHub
 #
-# The image itself is NOT built here: use ./update-btop.sh (btop++ update)
+# The image itself is NOT built here: use ./internal/update-btop.sh (btop++ update)
 # or ./build.sh --registry docker.io/hbixu --push (other changes) before running this script.
 #
-# Usage: ./release.sh
+# Usage: ./internal/release.sh
 
 set -e
 
@@ -24,8 +24,9 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# This script lives in internal/; run everything from the repository root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+cd "$SCRIPT_DIR/.."
 
 if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
@@ -73,7 +74,7 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD)
 [ "$BRANCH" = "main" ] || fail "Releases are created from 'main' (current branch: $BRANCH)"
 
 if git rev-parse -q --verify "refs/tags/$TAG" > /dev/null; then
-    fail "Tag $TAG already exists locally. Bump DEFAULT_VERSION in build.sh (or use ./update-btop.sh)."
+    fail "Tag $TAG already exists locally. Bump DEFAULT_VERSION in build.sh (or use ./internal/update-btop.sh)."
 fi
 
 echo "Fetching origin..."
