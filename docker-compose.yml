@@ -1,0 +1,16 @@
+services:
+  btop:
+    image: btop-plus-plus:latest   # built with ./build.sh (or hbixu/btop-plus-plus:latest from Docker Hub)
+    container_name: btop
+    pid: host            # Required: see host processes
+    network_mode: host   # Required: see host network interfaces (port is opened directly on the host)
+    privileged: true     # Access to sensors/temperatures and hardware metrics (/sys, /dev)
+    environment:
+      # Web UI port (default: 7681). On Synology DSM with ARPL/RR bootloader, 7681 is taken - use e.g. 5002
+      - PORT=${BTOP_PORT:-7681}
+    volumes:
+      - ./config:/config   # btop configuration (./config/btop/btop.conf)
+      - /etc/localtime:/etc/localtime:ro
+      # Additional disks: mount (read-only) so they show up in the disks panel
+      # - /mnt/hdd1:/mnt/hdd1:ro
+    restart: unless-stopped

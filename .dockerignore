@@ -1,0 +1,11 @@
+*.md
+*.txt
+*.sh
+*.ps1
+.git
+.gitignore
+.gitattributes
+config/
+internal/
+docker-compose.yml
+# Note: LICENSE and third-party-licenses/ are copied into the image

@@ -1,0 +1,8 @@
+# btop runtime configuration (generated on first run)
+config/*
+!config/.gitkeep
+
+# Local environment overrides (BTOP_PORT, ...)
+.env
+
+*.log
