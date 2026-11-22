@@ -10,7 +10,7 @@
 #   5. Runs build.sh; on success updates build.sh, Dockerfile, VERSIONS.md,
 #      CHANGELOG.md and internal/DOCKER-README.md with the new versions
 #
-# Nothing is committed: review the changes with `git diff` and commit them yourself.
+# Nothing is committed: review the changes with `git diff`, then run ./release.sh.
 #
 # Usage: ./update-btop.sh [--force] [--registry REGISTRY]
 #   --force              Offer to build even if btop++ is already up to date
@@ -315,6 +315,5 @@ else
 fi
 echo ""
 echo "Next steps:"
-echo "  git diff"
-echo "  git commit -am \"Release $NEW_IMAGE_VERSION: btop++ $LATEST_BTOP\""
-echo "  git tag v$NEW_IMAGE_VERSION"
+echo "  git diff        # review the changes"
+echo "  ./release.sh    # commit, tag v$NEW_IMAGE_VERSION and push"

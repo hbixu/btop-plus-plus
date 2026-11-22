@@ -20,6 +20,7 @@ Minimal Docker image (Alpine) with **[btop++](https://github.com/aristocratos/bt
 ├── check-versions.sh         # Update checker (Linux / macOS / Git Bash)
 ├── check-versions.ps1        # Update checker (Windows PowerShell)
 ├── update-btop.sh            # Interactive btop++ update: build/push a new image
+├── release.sh                # Commit, tag and push a release
 ├── root/                     # Scripts copied into the image (entrypoint)
 ├── VERSIONS.md               # Version and build details
 ├── CHANGELOG.md
@@ -40,6 +41,24 @@ See **[VERSIONS.md](VERSIONS.md)** for the pinned versions and how to check for 
 ```
 
 btop++ is compiled during the build, so it takes a few minutes (longer for multi-platform builds).
+
+## Release workflow
+
+**New btop++ version:**
+
+```bash
+./update-btop.sh   # checks for a new btop++ release, builds and pushes the image, updates the version files
+git diff           # review the changes
+./release.sh       # commits, creates the tag vX.Y.Z and pushes main + tag
+```
+
+**Other changes** (Alpine, scripts, documentation):
+
+1. Bump `DEFAULT_VERSION` in `build.sh` and add an entry to `CHANGELOG.md` (and to the version tables in `VERSIONS.md` and `internal/DOCKER-README.md`)
+2. `./build.sh --registry docker.io/hbixu --push`
+3. `./release.sh`
+
+Pushing a tag to Gitea triggers the sync to GitHub (see [.gitea/README.md](.gitea/README.md)). After a release, update the Docker Hub description with `internal/DOCKER-README.md`.
 
 ## Configuration
 
