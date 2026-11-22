@@ -1,6 +1,6 @@
 # Internal documentation
 
-This folder contains internal documentation that is not part of the image or the user-facing docs.
+This folder contains internal documentation that **is not synced to GitHub** (the sync workflow excludes it).
 
 - **DOCKER-README.md** — Content for the Docker Hub repository description (`hbixu/btop-plus-plus`). Update the version table when releasing new image tags.
 

@@ -2,7 +2,7 @@
 
 Minimal Docker image (Alpine) with **[btop++](https://github.com/aristocratos/btop)**, accessible from the **browser** through [ttyd](https://github.com/tsl0922/ttyd) or from the **terminal**. Shows the host processes, network, disks and sensors.
 
-![linux/amd64](https://img.shields.io/badge/linux-amd64-28a745?style=flat-square) ![linux/arm64](https://img.shields.io/badge/linux-arm64-0073ec?style=flat-square)
+[![Source](https://img.shields.io/badge/source-GitHub-24292e?style=flat-square&logo=github)](https://github.com/hbixu/btop-plus-plus) ![linux/amd64](https://img.shields.io/badge/linux-amd64-28a745?style=flat-square) ![linux/arm64](https://img.shields.io/badge/linux-arm64-0073ec?style=flat-square)
 
 ## Features
 
@@ -81,3 +81,8 @@ ttyd has **no authentication** by default — do not expose the port to the inte
 ## License
 
 Apache-2.0. Bundled software: btop++ (Apache-2.0), ttyd (MIT), tini (MIT).
+
+## Links
+
+- **Source / full documentation:** [GitHub](https://github.com/hbixu/btop-plus-plus)
+- **Report issues:** [GitHub Issues](https://github.com/hbixu/btop-plus-plus/issues)
